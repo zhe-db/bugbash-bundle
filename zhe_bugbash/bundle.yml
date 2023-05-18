@@ -1,0 +1,60 @@
+variables:
+  experiment_name:
+    description: Experiment name for the model training.
+    default: /Users/${workspace.current_user.userName}/${bundle.environment}-zhe-bugbash-experiment
+  model_name:
+    description: Model name for the model training.
+    default: ${bundle.environment}-zhe-bugbash-model
+  model_description:
+    description: Model description for the model used in training.
+    default: MLflow registered model for the "zhe-bugbash" ML Project for ${bundle.environment} environment.
+
+
+bundle:
+  name: zhe-bugbash
+
+
+include:
+  # Include ML artifact resources for the ml project
+  # Defines model and experiment
+  - ./databricks-resources/ml-artifacts-resource.yml
+
+  # Include workflow resources of the ml project
+  # Defines workflow for model training -> validation -> deployment
+  - ./databricks-resources/model-workflow-resource.yml
+  # Defines workflow for feature engineering
+  - ./databricks-resources/feature-engineering-workflow-resource.yml
+  # Defines workflow for scheduled batch inference
+  - ./databricks-resources/batch-inference-workflow-resource.yml
+  # Defines workflow for data monitoring, metric refresh, alerts and triggering retraining
+  - ./databricks-resources/monitoring-workflow-resource.yml
+
+
+# Environment specific values for workspace
+environments:
+  dev:
+    default: true
+    workspace:
+      # TODO: add dev workspace URL
+      host: https://adb-7064161269814046.2.staging.azuredatabricks.net/
+
+  staging:
+    workspace:
+      host: https://adb-5506808866566678.8.dev.azuredatabricks.net
+
+  prod:
+    variables:
+      model_description: |
+        MLflow registered model for the "zhe-bugbash" ML Project. See the corresponding [Git repo](${bundle.git.origin_url}) for details on the project.
+        
+        Links:
+          * [Git Repo](${bundle.git.origin_url}): contains ML code for the current project.
+          * [Recurring model training job](https://adb-3885505072560999.9.dev.azuredatabricks.net#job/${resources.jobs.model_training_job.id}): trains fresh model versions using the latest ML code.
+          * [Recurring batch inference job](https://adb-3885505072560999.9.dev.azuredatabricks.net#job/${resources.jobs.batch_inference_job.id}): applies the latest ${bundle.environment} model version for batch inference.
+    workspace:
+      host: https://adb-3885505072560999.9.dev.azuredatabricks.net
+
+  test:
+    workspace:
+      host: https://adb-5506808866566678.8.dev.azuredatabricks.net
+
